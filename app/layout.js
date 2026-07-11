@@ -22,14 +22,15 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body
-        className="bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px] text-white"
-      >
+      <body className="bg-[#030712] text-slate-200 antialiased">
+        {/* Consistent global subtle background lighting */}
+        <div className="fixed inset-0 bg-[#030712] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.08),rgba(255,255,255,0))] pointer-events-none z-[-10]"></div>
+        
         <SessionWrapper>
           <Navbar />
-          <div className="min-h-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px] text-white">
+          <main className="min-h-[calc(100vh-130px)] relative">
             {children}
-          </div>
+          </main>
           <Footer />
         </SessionWrapper>
       </body>
