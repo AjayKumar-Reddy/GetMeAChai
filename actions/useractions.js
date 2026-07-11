@@ -146,6 +146,8 @@ export const updateProfile = async (profiledata) => {
         return { success: false, message: "Username can only contain letters, numbers, and underscores" }
     }
 
+    const parsedGoal = Number(profiledata.goal)
+
     // ── Whitelist allowed fields (prevents mass assignment) ──
     const allowedFields = {
         name: profiledata.name || "",
@@ -153,6 +155,8 @@ export const updateProfile = async (profiledata) => {
         profilepic: profiledata.profilepic || "",
         coverpic: profiledata.coverpic || "",
         razorpayid: profiledata.razorpayid || "",
+        bio: profiledata.bio || "",
+        goal: isNaN(parsedGoal) || parsedGoal <= 0 ? 10000 : parsedGoal,
     }
 
     // ── Handle razorpaysecret separately — encrypt if provided ──
@@ -183,6 +187,7 @@ export const updateProfile = async (profiledata) => {
 /**
  * Fetch the authenticated user's own data for the dashboard.
  * - Returns hasRazorpaySecret flag (not the actual value)
+ * - Returns the list of completed payments received by this user
  * - Only accessible by the logged-in user
  */
 export const fetchUserDashboard = async () => {
@@ -201,7 +206,13 @@ export const fetchUserDashboard = async () => {
     // Strip the actual secret before sending to client
     delete user.razorpaysecret
 
-    return { ...user, hasRazorpaySecret }
+    // Fetch received completed payments for analytics
+    let payments = await Payment.find({ to_username: user.username, status: true })
+        .sort({ createdAt: -1 })
+        .lean()
+    payments = (payments || []).map((p) => ({ ...p, _id: p._id.toString() }))
+
+    return { ...user, hasRazorpaySecret, payments }
 }
 
 /**

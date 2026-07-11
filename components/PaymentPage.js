@@ -20,9 +20,9 @@ const PaymentPage = ({ username }) => {
 
   const getData = async () => {
     const u = await fetchUser(username)
-    setcurrentUser(u)
+    setcurrentUser(u || {})
     const dbpayments = await fetchPayments(username)
-    setPayments(dbpayments)
+    setPayments(dbpayments || [])
   }
 
   function handleChange(e) {
@@ -30,23 +30,24 @@ const PaymentPage = ({ username }) => {
   }
 
   const pay = async (amount) => {
-    // ── Client-side validation (server also validates) ──
-    if (!paymentform.name || paymentform.name.length < 2) {
-      toast.error("Please enter your name (at least 2 characters)", { theme: "light", transition: Bounce })
+    // ── Input validation ──
+    if (!paymentform.name || paymentform.name.trim().length < 2) {
+      toast.error("Please enter your name (at least 2 characters)", { theme: "dark", transition: Bounce })
       return
     }
-    if (!paymentform.description || paymentform.description.length < 3) {
-      toast.error("Please enter a message (at least 3 characters)", { theme: "light", transition: Bounce })
+    if (!paymentform.description || paymentform.description.trim().length < 3) {
+      toast.error("Please enter a message (at least 3 characters)", { theme: "dark", transition: Bounce })
       return
     }
-    if (amount <= 0) {
-      toast.error("Amount should be greater than zero", { theme: "light", transition: Bounce })
+    const amtNum = Number(amount)
+    if (isNaN(amtNum) || amtNum <= 0) {
+      toast.error("Amount should be greater than zero", { theme: "dark", transition: Bounce })
       return
     }
 
-    // Self-payment check (server also enforces this)
+    // Prevent self-payment
     if (session?.user?.name === username) {
-      toast.error("You cannot donate to yourself", { theme: "light", transition: Bounce })
+      toast.error("You cannot donate to yourself", { theme: "dark", transition: Bounce })
       return
     }
 
@@ -56,7 +57,7 @@ const PaymentPage = ({ username }) => {
       let order = await initiate(amount, username, paymentform)
 
       if (!order || !order.id) {
-        toast.error("Failed to create order. Please try again.", { theme: "light", transition: Bounce })
+        toast.error("Failed to create order. Please try again.", { theme: "dark", transition: Bounce })
         setIsProcessing(false)
         return
       }
@@ -65,13 +66,9 @@ const PaymentPage = ({ username }) => {
         key: currentUser.razorpayid,
         amount: order.amount,
         currency: order.currency,
-        name: "Get Me a Chai",
-        description: `Supporting ${username}`,
+        name: "GetMeAChai",
+        description: `Supporting @${username}`,
         order_id: order.id,
-
-        // ── This is the FIX: use handler instead of callback_url ──
-        // In popup mode, Razorpay calls this function after payment.
-        // We then verify the payment on our backend.
         handler: async function (response) {
           try {
             const res = await fetch("/api/razorpay", {
@@ -87,33 +84,32 @@ const PaymentPage = ({ username }) => {
 
             if (data.success) {
               toast.success("✅ Payment successful! Thank you for supporting!", {
-                theme: "light",
+                theme: "dark",
                 transition: Bounce,
               })
               setPaymentform({ name: "", description: "", amount: "" })
-              await getData() // Refresh payment list and stats
+              await getData() // Refresh statistics and supporters feed
             } else {
               toast.error(`Verification failed: ${data.message}`, {
-                theme: "light",
+                theme: "dark",
                 transition: Bounce,
               })
             }
           } catch (err) {
             console.error("Payment verification error:", err)
             toast.error("Payment verification error. Please contact support.", {
-              theme: "light",
+              theme: "dark",
               transition: Bounce,
             })
           } finally {
             setIsProcessing(false)
           }
         },
-
         prefill: {
           name: paymentform.name,
           email: session?.user?.email || "",
         },
-        theme: { color: "#3399cc" },
+        theme: { color: "#6366f1" },
         modal: {
           ondismiss: function () {
             setIsProcessing(false)
@@ -124,151 +120,251 @@ const PaymentPage = ({ username }) => {
       const rzp1 = new Razorpay(options)
       rzp1.on("payment.failed", function (response) {
         toast.error(`Payment failed: ${response.error.description}`, {
-          theme: "light",
+          theme: "dark",
           transition: Bounce,
         })
         setIsProcessing(false)
       })
       rzp1.open()
     } catch (err) {
-      toast.error(err.message || "Something went wrong", { theme: "light", transition: Bounce })
+      toast.error(err.message || "Something went wrong", { theme: "dark", transition: Bounce })
       setIsProcessing(false)
     }
   }
 
   const isSelfProfile = session?.user?.name === username
-  const isFormValid = paymentform.name.length >= 2 && paymentform.description.length >= 3
+  const isFormValid = paymentform.name.trim().length >= 2 && paymentform.description.trim().length >= 3
+
+  // Math metrics
+  const totalRaised = payments.reduce((total, p) => total + Number(p.amount), 0)
+  const targetGoal = currentUser.goal || 10000
+  const progressPercent = Math.min(Math.round((totalRaised / targetGoal) * 100), 100)
 
   return (
-    <>
-      <ToastContainer position="top-right" autoClose={5000} theme="light" transition={Bounce} />
+    <div className="bg-[#030712] min-h-[calc(100vh-130px)] text-white">
+      <ToastContainer position="top-right" autoClose={5000} theme="dark" transition={Bounce} />
       <Script src="https://checkout.razorpay.com/v1/checkout.js"></Script>
 
-      {/* Cover + Profile Section */}
-      <div className="relative w-full h-60 md:h-72">
-        <Image src={currentUser?.coverpic || "/avatar.gif"} alt="Cover img" fill className="object-cover" />
-        <div className="absolute -bottom-14 left-1/2 -translate-x-1/2">
-          <div className="w-28 h-28 relative">
+      {/* Profile Header (Banner & Avatar) */}
+      <div className="relative w-full h-56 md:h-64 bg-slate-950 border-b border-white/5 overflow-hidden">
+        {currentUser?.coverpic ? (
+          <Image src={currentUser.coverpic} alt="Cover image" fill className="object-cover opacity-60" priority />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 opacity-40"></div>
+        )}
+        
+        {/* Subtle Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#030712] to-transparent"></div>
+
+        {/* Floating Avatar */}
+        <div className="absolute -bottom-12 left-6 md:left-12 flex items-end gap-5">
+          <div className="w-24 h-24 md:w-28 md:h-28 relative rounded-2xl overflow-hidden border-4 border-[#030712] bg-slate-900 shadow-2xl">
             <Image
               src={currentUser?.profilepic || "/avatar.gif"}
               alt="User profile"
               fill
-              className="rounded-full object-cover border-4 border-white shadow-lg"
+              className="object-cover"
             />
           </div>
+          <div className="mb-14 pb-1">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              {currentUser.name || username}
+              {currentUser?.razorpayid && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                  Verified
+                </span>
+              )}
+            </h1>
+            <p className="text-xs md:text-sm text-slate-400">@{username}</p>
+          </div>
         </div>
       </div>
 
-      {/* Info Section */}
-      <div className="text-center mt-16 space-y-3">
-        <h1 className="font-bold text-2xl md:text-3xl">@{username}</h1>
-        <p className="text-gray-500">Let&apos;s help each other grow by sharing a chai ☕</p>
-        <div className="text-gray-600 text-sm md:text-base">
-          <p>
-            {currentUser?.razorpayid
-              ? "✅ Ready to receive payments"
-              : "⚠️ User not ready to receive payments"}
-          </p>
-          <p>
-            {payments.length} Payments • ₹
-            {payments.reduce((total, payment) => total + Number(payment.amount), 0)} Raised
-          </p>
-        </div>
-        {isSelfProfile && (
-          <p className="text-yellow-500 text-sm font-medium">
-            ⚠️ This is your own profile. You cannot donate to yourself.
-          </p>
-        )}
-      </div>
-
-      {/* Payment + Supporters */}
-      <div className="max-w-5xl mx-auto mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 px-4 md:px-6 mb-16">
-        {/* Supporters Card */}
-        <div className="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl shadow-xl p-6 overflow-y-auto max-h-[28rem]">
-          <h2 className="text-xl font-bold mb-4 text-white">Supporters</h2>
-          <ul className="space-y-4">
-            {payments.length === 0 ? (
-              <p className="text-slate-500 text-sm">No supporters yet. Be the first one!</p>
-            ) : (
-              payments.map((p) => (
-                <li key={p._id} className="flex items-start gap-3 pb-3 border-b border-white/5 last:border-0 last:pb-0">
-                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-xs font-bold text-indigo-300">
-                    {p.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-sm text-slate-300">
-                    <span className="font-semibold text-white">{p.name}</span> donated{" "}
-                    <span className="font-bold text-indigo-400">₹{p.amount}</span> <br />
-                    <span className="text-slate-400 italic mt-0.5 block">&ldquo;{p.message}&rdquo;</span>
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-
-        {/* Payment Card */}
-        <div className="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl shadow-xl p-6 flex flex-col justify-between">
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-white">Make a Payment</h2>
-            <div className="space-y-4">
-              <input
-                onChange={handleChange}
-                name="name"
-                value={paymentform.name}
-                type="text"
-                placeholder="Your Name"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-600 focus:outline-none transition-all text-sm"
-              />
-              <input
-                onChange={handleChange}
-                name="description"
-                value={paymentform.description}
-                type="text"
-                placeholder="Message"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-600 focus:outline-none transition-all text-sm"
-              />
-              <input
-                onChange={handleChange}
-                name="amount"
-                value={paymentform.amount}
-                type="number"
-                placeholder="Custom Amount (₹)"
-                min="1"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-600 focus:outline-none transition-all text-sm"
-              />
+      {/* Main Grid Content */}
+      <div className="max-w-6xl mx-auto px-4 md:px-8 pt-20 pb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* LEFT COLUMN: Profile info, goal, and supporters timeline (60% / 7 cols) */}
+          <div className="lg:col-span-7 space-y-6">
+            
+            {/* Bio Card */}
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">About Creator</h2>
+              <p className="text-slate-300 leading-relaxed text-sm md:text-base">
+                {currentUser?.bio || `Hey there! I am creating awesome content and projects. If you like my work, feel free to support my journey by buying me a chai! ☕`}
+              </p>
             </div>
+
+            {/* Goal Progress Widget */}
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Fundraising Goal</h3>
+                  <p className="text-2xl font-extrabold text-white mt-1">₹{totalRaised.toLocaleString("en-IN")}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs text-slate-500 font-medium">Target Target</span>
+                  <p className="text-sm font-bold text-slate-300 mt-1">₹{targetGoal.toLocaleString("en-IN")}</p>
+                </div>
+              </div>
+
+              {/* Progress Bar Container */}
+              <div className="space-y-2">
+                <div className="w-full bg-white/5 rounded-full h-3.5 overflow-hidden border border-white/5">
+                  <div
+                    className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full transition-all duration-500 shadow-lg shadow-indigo-500/20"
+                    style={{ width: `${progressPercent}%` }}
+                  ></div>
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+                  <span>{progressPercent}% Complete</span>
+                  <span>{payments.length} support payments received</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Supporters Activity Timeline */}
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md">
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-6">Recent Activity Feed</h3>
+              
+              {payments.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-slate-500 text-sm">No supporters yet. Be the first to fuel this journey! 🚀</p>
+                </div>
+              ) : (
+                <div className="relative border-l border-white/5 pl-6 space-y-6">
+                  {payments.map((p) => (
+                    <div key={p._id} className="relative">
+                      {/* Timeline dot */}
+                      <span className="absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 border-2 border-indigo-500"></span>
+                      
+                      {/* Donation Info Card */}
+                      <div className="bg-white/[0.01] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all">
+                        <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                          <span className="font-semibold text-white text-sm">{p.name}</span>
+                          <span className="text-xs font-bold text-indigo-400 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-md">
+                            Donated ₹{p.amount}
+                          </span>
+                        </div>
+                        <p className="text-slate-400 text-sm italic">&ldquo;{p.message}&rdquo;</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
 
-          <div className="space-y-4 mt-6">
-            <button
-              onClick={() => pay(paymentform.amount)}
-              disabled={
-                !isFormValid ||
-                paymentform.amount.length < 1 ||
-                !currentUser.razorpayid ||
-                isSelfProfile ||
-                isProcessing
-              }
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/10 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isProcessing ? "Processing..." : `Pay ₹${paymentform.amount || '0'}`}
-            </button>
-            <div className="flex gap-2.5 flex-wrap">
-              {[5, 10, 20, 50].map((amt) => (
+          {/* RIGHT COLUMN: Sticky Payment Widget (40% / 5 cols) */}
+          <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-6">
+            
+            {/* Donation Card */}
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-md shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center border border-white/10">
+                  <span className="text-lg">☕</span>
+                </div>
+                <h3 className="text-lg font-bold text-white">Support Creator</h3>
+              </div>
+
+              {/* Warn if own profile */}
+              {isSelfProfile ? (
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-400 text-xs font-medium mb-6">
+                  ⚠️ This is your own profile page. Self-payment is restricted on GetMeAChai.
+                </div>
+              ) : !currentUser.razorpayid ? (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-medium mb-6">
+                  ⚠️ This creator has not configured their payment keys in settings.
+                </div>
+              ) : null}
+
+              {/* Form Input fields */}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Your Name</label>
+                  <input
+                    onChange={handleChange}
+                    name="name"
+                    value={paymentform.name}
+                    type="text"
+                    placeholder="Enter your name"
+                    disabled={isSelfProfile || !currentUser.razorpayid || isProcessing}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/15 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-600 focus:outline-none transition-all text-sm disabled:opacity-50"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Message</label>
+                  <input
+                    onChange={handleChange}
+                    name="description"
+                    value={paymentform.description}
+                    type="text"
+                    placeholder="Leave a friendly message"
+                    disabled={isSelfProfile || !currentUser.razorpayid || isProcessing}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/15 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-600 focus:outline-none transition-all text-sm disabled:opacity-50"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Donation Amount (₹)</label>
+                  <input
+                    onChange={handleChange}
+                    name="amount"
+                    value={paymentform.amount}
+                    type="number"
+                    placeholder="Enter Custom Amount"
+                    min="1"
+                    disabled={isSelfProfile || !currentUser.razorpayid || isProcessing}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/15 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-600 focus:outline-none transition-all text-sm disabled:opacity-50"
+                  />
+                </div>
+
+                {/* Quick Selection Buttons */}
+                <div className="grid grid-cols-4 gap-2 pt-2">
+                  {[5, 10, 20, 50].map((amt) => (
+                    <button
+                      key={amt}
+                      onClick={() => pay(amt)}
+                      disabled={!isFormValid || !currentUser.razorpayid || isSelfProfile || isProcessing}
+                      className="py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 active:scale-[0.97] rounded-xl text-xs font-semibold text-slate-300 hover:text-white transition disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      ₹{amt}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Main Submit Action */}
                 <button
-                  key={amt}
-                  onClick={() => pay(amt)}
-                  disabled={!isFormValid || !currentUser.razorpayid || isSelfProfile || isProcessing}
-                  className="flex-1 min-w-[60px] py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium text-xs rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => pay(paymentform.amount)}
+                  disabled={
+                    !isFormValid ||
+                    paymentform.amount.length < 1 ||
+                    !currentUser.razorpayid ||
+                    isSelfProfile ||
+                    isProcessing
+                  }
+                  className="w-full py-3 mt-4 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/10 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  ₹{amt}
+                  {isProcessing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    `Pay ₹${paymentform.amount || "0"}`
+                  )}
                 </button>
-              ))}
+
+              </div>
             </div>
+
           </div>
+
         </div>
       </div>
-    </>
+    </div>
   )
 }
 

@@ -12,6 +12,8 @@ const UserSchema = new mongoose.Schema({
     razorpaysecret: { type: String, select: false },
     // Hashed password for credentials login
     password: { type: String, select: false },
+    bio: { type: String, maxLength: 250 },
+    goal: { type: Number, default: 10000 },
 }, { timestamps: true });
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
