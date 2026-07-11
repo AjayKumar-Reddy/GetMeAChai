@@ -1,16 +1,18 @@
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
-    name: { type: String},
-    email: { type: String, required: true},
-    username: { type: String, required: true},
+    name: { type: String },
+    email: { type: String, required: true, unique: true },
+    username: { type: String, required: true, unique: true },
     profilepic: { type: String },
-    coverpic: { type: String},
-    razorpayid:{ type: String },
-    razorpaysecret:{ type: String },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
-});
+    coverpic: { type: String },
+    razorpayid: { type: String },
+    // select: false ensures this field is NEVER returned by default.
+    // Must explicitly use .select('+razorpaysecret') to include it.
+    razorpaysecret: { type: String, select: false },
+    // Hashed password for credentials login
+    password: { type: String, select: false },
+}, { timestamps: true });
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 export default User;

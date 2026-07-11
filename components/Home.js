@@ -33,29 +33,29 @@ const Home = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900/10 to-cyan-900/10 flex flex-col justify-center items-center px-4 py-12">
+        <div className="min-h-[calc(100vh-130px)] bg-transparent flex flex-col justify-center items-center px-6 py-12">
             {/* Main Content */}
-            <div className="max-w-4xl w-full text-center space-y-10">
+            <div className="max-w-4xl w-full text-center space-y-12">
                 {/* Logo + Title */}
                 <div className="flex flex-col items-center justify-center gap-6">
                     <div className="flex items-center gap-4 flex-wrap justify-center">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                            Buy Me a Chai
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">
+                            GetMeAChai
                         </h1>
-                        <div className="relative">
+                        <div className="relative w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
                             <Image
                                 src="/tea.gif"
                                 alt="Chai"
-                                width={60}
-                                height={60}
-                                className="invert drop-shadow-lg"
+                                width={28}
+                                height={28}
+                                className="invert brightness-200"
                             />
                         </div>
                     </div>
 
-                    <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
-                        A <span className="text-cyan-400 font-medium">crowdfunding platform</span> for creators.  
-                        Get funded by your <span className="text-blue-400 font-medium">fans and followers</span>.
+                    <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                        A clean, robust <span className="text-indigo-400 font-semibold">crowdfunding network</span> for creators.  
+                        Get funded directly by your <span className="text-white font-semibold">fans and supporters</span>.
                     </p>
                 </div>
 
@@ -67,10 +67,10 @@ const Home = () => {
                             value={query}
                             onChange={handleSearch}
                             placeholder="Search for creators..."
-                            className="w-full px-5 py-4 pl-12 text-white bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400 text-lg"
+                            className="w-full px-5 py-4 pl-12 text-white bg-white/5 border border-white/10 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder-slate-600 focus:outline-none transition-all text-lg"
                         />
                         <svg
-                            className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                            className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5.5 h-5.5 text-slate-500"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -78,7 +78,7 @@ const Home = () => {
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                strokeWidth={2}
+                                strokeWidth={2.5}
                                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                             />
                         </svg>
@@ -86,36 +86,36 @@ const Home = () => {
 
                     {/* Loading Indicator */}
                     {loading && (
-                        <div className="mt-3 flex items-center gap-2 text-cyan-300 text-sm">
-                            <div className="w-4 h-4 border-2 border-cyan-300 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="mt-3 flex items-center gap-2 text-indigo-400 text-sm">
+                            <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
                             <span>Searching...</span>
                         </div>
                     )}
 
                     {/* Search Results */}
                     {results.length > 0 && (
-                        <div className="absolute z-10 mt-2 w-full bg-white/90 backdrop-blur-md rounded-xl shadow-xl border border-gray-200 max-h-80 overflow-y-auto">
+                        <div className="absolute z-10 mt-2 w-full bg-slate-950 border border-white/10 text-white rounded-xl shadow-xl backdrop-blur-xl max-h-80 overflow-y-auto p-1">
                             {results.map((user) => (
                                 <Link
                                     key={user._id}
                                     href={`/${user.username}`}
-                                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100/80 transition-colors"
+                                    className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-lg transition-colors"
                                     onClick={() => setQuery("")}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-semibold">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-semibold shadow-sm">
                                         {(user.name || user.username).charAt(0).toUpperCase()}
                                     </div>
                                     <div className="text-left">
-                                        <div className="font-medium text-gray-900">
+                                        <div className="font-semibold text-white">
                                             {user.name || user.username}
                                         </div>
                                         {user.name && user.username && (
-                                            <div className="text-sm text-gray-500">@{user.username}</div>
+                                            <div className="text-xs text-slate-400">@{user.username}</div>
                                         )}
                                     </div>
                                 </Link>
                             ))}
-                            <div className="px-4 py-2 text-center text-sm text-gray-500 border-t border-gray-200">
+                            <div className="px-4 py-2 text-center text-xs text-slate-500 border-t border-white/5 mt-1">
                                 {results.length} creator{results.length !== 1 ? 's' : ''} found
                             </div>
                         </div>
@@ -125,30 +125,30 @@ const Home = () => {
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Link href="/login">
-                        <button className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-xl hover:opacity-90 transition-opacity shadow-lg">
+                        <button className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/10 active:scale-[0.98]">
                             Get Started
                         </button>
                     </Link>
                     <Link href="/about">
-                        <button className="px-8 py-3 bg-white/10 backdrop-blur-sm text-white font-medium rounded-xl border border-white/20 hover:bg-white/20 transition-colors">
+                        <button className="w-full sm:w-auto px-8 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-semibold rounded-xl transition-all active:scale-[0.98]">
                             Learn More
                         </button>
                     </Link>
                 </div>
 
                 {/* Trust Badges */}
-                <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-gray-400">
+                <div className="flex flex-wrap justify-center gap-8 mt-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        <span>Secure</span>
+                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                        <span>Secure Transactions</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                        <span>Trusted by Creators</span>
+                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                        <span>Direct Payouts</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                        <span>Simple & Fast</span>
+                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                        <span>Developer Friendly</span>
                     </div>
                 </div>
             </div>

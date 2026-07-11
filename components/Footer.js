@@ -2,16 +2,16 @@ import React from 'react'
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-white py-6 px-4 shadow-inner">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+    <footer className="bg-transparent border-t border-white/5 py-5 px-6 mt-auto">
+      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         
         {/* Left Section */}
-        <p className="text-sm md:text-base opacity-80">
-          © {new Date().getFullYear()} <span className="font-semibold">GetMeAChai!</span>. All rights reserved.
+        <p className="text-xs text-slate-500 font-medium">
+          © {new Date().getFullYear()} <span className="text-slate-400">GetMeAChai</span>. All rights reserved.
         </p>
         
         {/* Right Section */}
-        <p className="text-sm md:text-base font-medium bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+        <p className="text-xs font-semibold tracking-wide text-indigo-400/80 uppercase">
           Fund your projects with chai ☕
         </p>
       </div>
