@@ -165,6 +165,11 @@ export const updateProfile = async (profiledata) => {
     }
     // If not provided, existing encrypted secret is preserved
 
+    // ── Handle razorpaywebhooksecret separately — encrypt if provided ──
+    if (profiledata.razorpaywebhooksecret && profiledata.razorpaywebhooksecret.trim() !== "") {
+        allowedFields.razorpaywebhooksecret = encrypt(profiledata.razorpaywebhooksecret)
+    }
+
     // ── Check username uniqueness if changed ──
     if (oldUsername !== allowedFields.username) {
         const existingUser = await User.findOne({ username: allowedFields.username })
@@ -196,15 +201,17 @@ export const fetchUserDashboard = async () => {
 
     await connectDb()
     const user = await User.findOne({ email: session.user.email })
-        .select("+razorpaysecret")
+        .select("+razorpaysecret +razorpaywebhooksecret")
         .lean()
     if (!user) return null
 
     user._id = user._id.toString()
     const hasRazorpaySecret = !!user.razorpaysecret
+    const hasRazorpayWebhookSecret = !!user.razorpaywebhooksecret
 
-    // Strip the actual secret before sending to client
+    // Strip the actual secrets before sending to client
     delete user.razorpaysecret
+    delete user.razorpaywebhooksecret
 
     // Fetch received completed payments for analytics
     let payments = await Payment.find({ to_username: user.username, status: true })
@@ -212,7 +219,7 @@ export const fetchUserDashboard = async () => {
         .lean()
     payments = (payments || []).map((p) => ({ ...p, _id: p._id.toString() }))
 
-    return { ...user, hasRazorpaySecret, payments }
+    return { ...user, hasRazorpaySecret, hasRazorpayWebhookSecret, payments }
 }
 
 /**

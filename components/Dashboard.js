@@ -19,11 +19,13 @@ const Dashboard = () => {
     coverpic: "",
     razorpayid: "",
     razorpaysecret: "",
+    razorpaywebhooksecret: "",
     bio: "",
     goal: 10000,
   })
   const [payments, setPayments] = useState([])
   const [hasRazorpaySecret, setHasRazorpaySecret] = useState(false)
+  const [hasRazorpayWebhookSecret, setHasRazorpayWebhookSecret] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -45,11 +47,13 @@ const Dashboard = () => {
         coverpic: u.coverpic || "",
         razorpayid: u.razorpayid || "",
         razorpaysecret: "", // never expose secret
+        razorpaywebhooksecret: "", // never expose secret
         bio: u.bio || "",
         goal: u.goal || 10000,
       })
       setPayments(u.payments || [])
       setHasRazorpaySecret(u.hasRazorpaySecret)
+      setHasRazorpayWebhookSecret(u.hasRazorpayWebhookSecret)
     }
   }
 
@@ -66,6 +70,9 @@ const Dashboard = () => {
       if (!dataToSend.razorpaysecret || dataToSend.razorpaysecret.trim() === "") {
         delete dataToSend.razorpaysecret
       }
+      if (!dataToSend.razorpaywebhooksecret || dataToSend.razorpaywebhooksecret.trim() === "") {
+        delete dataToSend.razorpaywebhooksecret
+      }
 
       const res = await updateProfile(dataToSend)
       if (!res.success) {
@@ -74,7 +81,8 @@ const Dashboard = () => {
       }
       await update({ name: form.username })
       setHasRazorpaySecret(hasRazorpaySecret || !!form.razorpaysecret)
-      setForm((prev) => ({ ...prev, razorpaysecret: "" })) // Clear secret input
+      setHasRazorpayWebhookSecret(hasRazorpayWebhookSecret || !!form.razorpaywebhooksecret)
+      setForm((prev) => ({ ...prev, razorpaysecret: "", razorpaywebhooksecret: "" })) // Clear secrets inputs
       toast.success("Profile updated successfully!", { theme: "dark", transition: Bounce })
     } catch {
       toast.error("An unexpected error occurred.", { theme: "dark", transition: Bounce })
@@ -370,6 +378,40 @@ const Dashboard = () => {
                       }
                     </p>
                   </div>
+
+                  <div className="md:col-span-2 space-y-1.5 pt-4 border-t border-white/5">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Razorpay Webhook Secret</label>
+                    <input
+                      value={form.razorpaywebhooksecret}
+                      onChange={handleChange}
+                      type="password"
+                      name="razorpaywebhooksecret"
+                      placeholder={hasRazorpayWebhookSecret ? "••••••••  (webhook secret configured)" : "Enter your webhook secret key"}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-600 focus:outline-none transition-all text-sm"
+                    />
+                    <p className="text-[10px] text-slate-500">
+                      {hasRazorpayWebhookSecret
+                        ? "✅ Webhook Secret configured. Type a new secret to overwrite, or leave empty to keep current."
+                        : "Symmetric key used to verify webhook notifications from Razorpay."
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Webhook Setup Instructions Card */}
+              <div className="bg-indigo-950/10 border border-indigo-500/10 rounded-2xl p-6 space-y-4">
+                <h3 className="text-xs font-semibold text-indigo-400 uppercase tracking-widest">Webhook Integration Setup</h3>
+                <div className="text-xs text-slate-400 space-y-2">
+                  <p>To enable real-time, server-side transaction updates (even if a supporter closes their browser midway):</p>
+                  <ol className="list-decimal list-inside space-y-1 pl-1">
+                    <li>Log in to your <strong>Razorpay Dashboard</strong>.</li>
+                    <li>Go to <strong>Settings</strong> &gt; <strong>Webhooks</strong> &gt; <strong>Add New Webhook</strong>.</li>
+                    <li>Set the Webhook URL to: <code className="bg-white/5 px-1.5 py-0.5 rounded text-indigo-300 select-all">{typeof window !== 'undefined' ? `${window.location.origin}/api/webhook` : 'https://<your-domain>/api/webhook'}</code></li>
+                    <li>Define a secret key of your choice, enter it in the Razorpay Webhooks settings, and paste the exact same secret in the <strong>Razorpay Webhook Secret</strong> field above.</li>
+                    <li>Select the Active Event: <code className="bg-white/5 px-1.5 py-0.5 rounded text-indigo-300">payment.captured</code></li>
+                    <li>Click <strong>Save Webhook</strong> and save your dashboard configuration above.</li>
+                  </ol>
                 </div>
               </div>
 
@@ -380,7 +422,7 @@ const Dashboard = () => {
                   disabled={isSubmitting}
                   className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/10 active:scale-[0.98] disabled:opacity-50"
                 >
-                  {isSubmitting ? "Saving key configurations..." : "Save API Credentials"}
+                  {isSubmitting ? "Saving gateway configurations..." : "Save API Credentials"}
                 </button>
               </div>
             </div>

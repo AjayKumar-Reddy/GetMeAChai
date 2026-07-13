@@ -10,6 +10,7 @@ const UserSchema = new mongoose.Schema({
     // select: false ensures this field is NEVER returned by default.
     // Must explicitly use .select('+razorpaysecret') to include it.
     razorpaysecret: { type: String, select: false },
+    razorpaywebhooksecret: { type: String, select: false },
     // Hashed password for credentials login
     password: { type: String, select: false },
     bio: { type: String, maxLength: 250 },
